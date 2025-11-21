@@ -1,0 +1,465 @@
+{
+  "name": "Appointment Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9f1eb040-8388-463b-af4f-5ca49c31fa2e",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -864,
+        -48
+      ],
+      "id": "6e71c744-6efe-4708-b45a-cb2aa1259897",
+      "name": "Webhook",
+      "webhookId": "9f1eb040-8388-463b-af4f-5ca49c31fa2e"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "_name",
+              "value": "={{ $json.body.message.toolCalls[0].function.arguments.customerName }}",
+              "type": "string"
+            },
+            {
+              "id": "field-2",
+              "name": "_phone",
+              "value": "={{ $json.body.message.toolCalls[0].function.arguments.customerPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "field-3",
+              "name": "_bookingSlot",
+              "value": "={{ $json.body.message.toolCalls[0].function.arguments.appointmentDateTime }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -656,
+        -48
+      ],
+      "id": "173c0a74-95c4-4860-ad24-035b32aa43df",
+      "name": "Extract VAPI Data"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "ikZxyytcYlniKnh1tbwh"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json._phone }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        -48
+      ],
+      "id": "032e3b1e-7ec3-45e4-9a79-a2c2ff838685",
+      "name": "Search Contact",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ooUlpePFbYXCFO9T",
+          "name": "GHL E&E Landscaping API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ !!$json.contacts && $json.contacts.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        -48
+      ],
+      "id": "b35590f6-d792-4eb1-89ab-90d242fb0d4c",
+      "name": "Check if Contact Exists"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "contact_id",
+              "value": "={{ $json.contacts[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "field-2",
+              "name": "_bookingSlot",
+              "value": "={{ $('Extract VAPI Data').item.json._bookingSlot }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -112
+      ],
+      "id": "c997910a-bd1a-44bb-abdc-c2af27a8a012",
+      "name": "Use Existing Contact"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "locationId",
+              "value": "ikZxyytcYlniKnh1tbwh"
+            },
+            {
+              "name": "name",
+              "value": "={{ $('Extract VAPI Data').item.json._name }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $('Extract VAPI Data').item.json._phone }}"
+            },
+            {
+              "name": "tags",
+              "value": "[\"ai_booked\"]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        48
+      ],
+      "id": "5f60fbb9-b2f4-439c-8e60-4d72855dedc2",
+      "name": "Create New Contact",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ooUlpePFbYXCFO9T",
+          "name": "GHL E&E Landscaping API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "contact_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "field-2",
+              "name": "_bookingSlot",
+              "value": "={{ $('Extract VAPI Data').item.json._bookingSlot }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        32
+      ],
+      "id": "d6995e23-fd6e-438b-8828-c54d84b85fb4",
+      "name": "Store New Contact ID"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/calendars/events/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contactId",
+              "value": "={{ $json.contact_id }}"
+            },
+            {
+              "name": "calendarId",
+              "value": "x4HMpTaDe7tp8WrQWRr6"
+            },
+            {
+              "name": "locationId",
+              "value": "ikZxyytcYlniKnh1tbwh"
+            },
+            {
+              "name": "startTime",
+              "value": "={{ $json._bookingSlot }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        -112
+      ],
+      "id": "acd5bb99-a44b-403b-a26e-f46d264f4884",
+      "name": "Book Appointment",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ooUlpePFbYXCFO9T",
+          "name": "GHL E&E Landscaping API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Appointment booked successfully\",\n  \"appointment_time\": \"{{ $('Book Appointment').item.json.startTime }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        528,
+        -128
+      ],
+      "id": "6acfcaaf-7019-489c-ba9b-5ceab923795d",
+      "name": "Success Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"Failed to book appointment\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        528,
+        48
+      ],
+      "id": "d1c3a6a6-1b74-4bc5-b83e-a3fb1bfe5885",
+      "name": "Error Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract VAPI Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract VAPI Data": {
+      "main": [
+        [
+          {
+            "node": "Search Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Contact": {
+      "main": [
+        [
+          {
+            "node": "Check if Contact Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Contact Exists": {
+      "main": [
+        [
+          {
+            "node": "Use Existing Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create New Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Existing Contact": {
+      "main": [
+        [
+          {
+            "node": "Book Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Contact": {
+      "main": [
+        [
+          {
+            "node": "Store New Contact ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store New Contact ID": {
+      "main": [
+        [
+          {
+            "node": "Book Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Appointment": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d2c37876-b97f-46c4-a18f-5803c9d31fc9",
+  "meta": {
+    "instanceId": "227e4f47a76aae6e15b20d362c537beffeb6fe532f4acc9237323d2df4812b14"
+  },
+  "id": "qkmpX3FJERW4d7xz",
+  "tags": []
+}
